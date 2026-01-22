@@ -30,7 +30,7 @@
     scrollToBottom();
 
     try {
-        const response = await axios.post("http://localhost:3000/api/chat", {
+        const response = await axios.post("https://islam-ai-chatbot.onrender.com/api/chat", {
             message: text
         })
 
