@@ -7,6 +7,7 @@
     import SideMenu from './components/SideMenu.vue';
 
     const isSidebarOpen = ref(false);
+    const chatWindow = ref(null);
 
     // State to hold the conversation
     const messages = ref([
@@ -18,45 +19,59 @@
     }
     ]);
 
-    const chatWindow = ref(null);
-
     // Function to handle sending a message
-    const handleNewMessage = async (text) => {
-    // 1. Add User Message
-    messages.value.push({ role: 'user', text: text });
-
-    // Scroll down so user sees their message
-    await nextTick();
-    scrollToBottom();
-
-    try {
-        const response = await axios.post("https://islam-ai-chatbot.onrender.com/api/chat", {
-            message: text
-        })
-
-        console.log('Server response:', response.data)
-        messages.value.push({
-            role: 'ai',
-            text: response.data.reply,     
-            sources: response.data.sources || []
+    const handleNewMessage = async ({ text, file }) => {
+        const imagePreviewUrl = file ? URL.createObjectURL(file) : null
+        // 1. Add User Message
+        messages.value.push({ 
+            role: 'user', 
+            text: text,
+            image: imagePreviewUrl // Save image URL for display
         });
-    } 
-    catch (error) {
-        console.error("Error fetching data:", error)
-    }
 
-    await nextTick();
-    scrollToBottom();
-    };
+        // Scroll down so user sees their message
+        await nextTick();
+        scrollToLatestMessage();
 
-    const scrollToBottom = () => {
-    if (chatWindow.value) {
-        chatWindow.value.scrollTop = chatWindow.value.scrollHeight;
-    }
+        const formData = new FormData();
+        formData.append("message", text); 
+        if (file) {
+            formData.append("image", file);
+        }
+
+        try {
+            const response = await axios.post(/*"https://islam-ai-chatbot.onrender.com/api/chat"*/"http://localhost:3000/api/chat", formData)
+            console.log('Server response:', response.data)
+            messages.value.push({
+                role: 'ai',
+                text: response.data.reply,     
+                sources: response.data.sources || []
+            });
+        } 
+        catch (error) {
+            console.error("Error fetching data:", error)
+            messages.value.push({
+                role: 'ai',
+                text: "I encountered an error connecting to the server.",
+                isError: true
+            })
+        }
+
+        await nextTick();
+        scrollToLatestMessage();
+        };
+
+        const scrollToLatestMessage = () => {
+        if (!chatWindow.value) return;
+            const messageElements = chatWindow.value.querySelectorAll('.message-wrapper');
+            const lastMessage = messageElements[messageElements.length - 1];
+            if (lastMessage) {
+                lastMessage.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+                });
+            }
     };
-    // import Header from "@/components/Header.vue"
-    // import Main from "@/components/Main.vue"
-    // import Footer from "@/components/Footer.vue"
 </script>
 
 <template>

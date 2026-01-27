@@ -56,7 +56,7 @@
       </div>
       
       <h1>AL-BAYAN</h1>
-      <div class="subtitle">The Clear Proof</div>
+      <div class="subtitle">The Clarification</div>
     </div>
 
     <div class="header-right">

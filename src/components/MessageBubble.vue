@@ -1,18 +1,18 @@
 <script setup>
     import { computed } from 'vue';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+    import { marked } from 'marked';
+    import DOMPurify from 'dompurify';
 
 const props = defineProps({
   message: Object
 });
 
-// Create a computed property that automatically converts text to safe HTML
 const renderedText = computed(() => {
-  // 1. Convert Markdown to HTML
-  const rawHtml = marked.parse(props.message.text);
-  // 2. Sanitize the HTML (remove dangerous scripts)
-  return DOMPurify.sanitize(rawHtml);
+    if (!props.message.text) return ""; // Handle image-only messages safely
+    // 1. Convert Markdown to HTML
+    const rawHtml = marked.parse(props.message.text);
+    // 2. Sanitize the HTML (remove dangerous scripts)
+    return DOMPurify.sanitize(rawHtml);
 });
 </script>
 
@@ -23,12 +23,28 @@ const renderedText = computed(() => {
             <div v-if="message.role === 'ai'" class="icon">📖</div>
             
             <div class="content">
-                <div class="markdown-text" v-html="renderedText"></div>
-                
+                <div v-if="message.image" class="image-container">
+                    <img :src="message.image" alt="Uploaded content" class="msg-image" />
+                </div>
+                <div v-if="message.text" class="markdown-text" v-html="renderedText"></div>                
                 <div v-if="message.sources && message.sources.length" class="citations">
                 <strong>Sources:</strong>
                 <ul>
-                    <li v-for="source in message.sources" :key="source">{{ source }}</li>
+                    <li v-for="(source, index) in message.sources" :key="index">
+                        <template v-if="typeof source === 'object'">
+                            <a :href="source.url" target="_blank" class="source-link">
+                            <span class="source-icon">
+                                {{ source.type === 'quran' ? '📖' : '📜' }}
+                            </span>
+                            {{ source.label }}
+                            <span class="external-icon">↗</span>
+                            </a>
+                        </template>
+                        
+                        <template v-else>
+                            {{ source }}
+                        </template>
+                    </li>
                 </ul>
                 </div>
             </div>
@@ -54,7 +70,7 @@ const renderedText = computed(() => {
     }
 
     .bubble {
-    max-width: 80%;
+    max-width: 85%;
     padding: 15px 20px;
     border-radius: 8px;
     position: relative;
@@ -62,18 +78,18 @@ const renderedText = computed(() => {
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
 
-    /* User Bubble Styles - Simple & Clean */
+    /* User Bubble Styles */
     .user .bubble {
     background-color: #1A472A;
     color: white;
     border-bottom-right-radius: 0;
     }
 
-    /* AI Bubble Styles - Scholarly/Parchment look */
+    /* AI Bubble Styles */
     .ai .bubble {
     background-color: #fff;
-    border: 1px solid #C5A059; /* Gold border */
-    border-left: 4px solid #C5A059; /* Thick accent on left */
+    border: 1px solid #C5A059; 
+    border-left: 4px solid #C5A059; 
     color: #2C3E50;
     display: flex;
     gap: 15px;
@@ -85,6 +101,23 @@ const renderedText = computed(() => {
     margin-top: -2px;
     }
 
+    /* --- NEW IMAGE STYLES --- */
+    .image-container {
+        margin-bottom: 12px;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+
+    .msg-image {
+        display: block;
+        max-width: 100%;       /* Ensure it fits in bubble */
+        max-height: 300px;     /* Prevent it from being too tall */
+        object-fit: cover;     /* Crop nicely if needed */
+        border-radius: 6px;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    /* ------------------------ */
+
     .citations {
     margin-top: 15px;
     padding-top: 10px;
@@ -94,7 +127,7 @@ const renderedText = computed(() => {
     }
 
     .citations ul {
-    list-style-type: none; /* Remove bullets */
+    list-style-type: none; 
     padding: 0;
     margin: 5px 0 0;
     }
@@ -108,35 +141,39 @@ const renderedText = computed(() => {
     line-height: 1.6;
     }
 
-    /* We need 'deep' selectors because this HTML is injected dynamically */
-    .markdown-text :deep(p) {
-    margin: 0 0 10px 0;
-    }
+    /* Markdown Styles */
+    .markdown-text :deep(p) { margin: 0 0 10px 0; }
+    .markdown-text :deep(p):last-child { margin-bottom: 0; }
+    .markdown-text :deep(strong) { color: inherit; font-weight: 700; } /* Inherit color so it looks good in Green bubble too */
+    .markdown-text :deep(ul), .markdown-text :deep(ol) { margin: 5px 0 15px 20px; padding: 0; }
+    .markdown-text :deep(li) { margin-bottom: 5px; }
 
-    .markdown-text :deep(p):last-child {
-    margin-bottom: 0;
-    }
-
-    .markdown-text :deep(strong) {
-    color: #1A472A; /* Make bold text Green for emphasis */
-    font-weight: 700;
-    }
-
-    .markdown-text :deep(ul), .markdown-text :deep(ol) {
-    margin: 5px 0 15px 20px;
-    padding: 0;
-    }
-
-    .markdown-text :deep(li) {
-    margin-bottom: 5px;
-    }
-
+    /* Code block fix for User vs AI bubble contrast */
     .markdown-text :deep(code) {
-    background-color: #f3f0e6; /* Light parchment for code/terms */
-    padding: 2px 5px;
-    border-radius: 4px;
-    font-family: monospace;
-    font-size: 0.9em;
-    color: #8b0000;
+        background-color: rgba(0,0,0,0.1); /* Translucent so it works on green & white */
+        padding: 2px 5px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.9em;
+        color: inherit; /* Inherit text color */
     }
+
+    .source-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: #1A472A; 
+    font-weight: 600;
+    transition: all 0.2s;
+    border-bottom: 1px dashed #C5A059; 
+    }
+
+    .source-link:hover {
+    color: #C5A059;
+    border-bottom-style: solid;
+    }
+
+    .source-icon { margin-right: 8px; font-size: 1.1em; }
+    .external-icon { font-size: 0.8em; margin-left: 5px; opacity: 0.6; }
+    .citations li { margin-bottom: 8px; }
 </style>
