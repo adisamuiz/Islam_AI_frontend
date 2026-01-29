@@ -40,7 +40,7 @@
         }
 
         try {
-            const response = await axios.post(/*"https://islam-ai-chatbot.onrender.com/api/chat"*/"http://localhost:3000/api/chat", formData)
+            const response = await axios.post("https://islam-ai-chatbot.onrender.com/api/chat"/*"http://localhost:3000/api/chat"*/, formData)
             console.log('Server response:', response.data)
             messages.value.push({
                 role: 'ai',
