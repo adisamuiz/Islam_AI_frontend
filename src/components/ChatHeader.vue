@@ -6,33 +6,45 @@
     const hijriDate = ref({ day: '', month: '', year: '' });
     const gregorianDate = ref('');
 
-    // Logic to get the current Hijri date using browser native API
+    // CONSTANT: English names for Islamic Months
+    const ISLAMIC_MONTHS = [
+        "Muharram", "Safar", "Rabi' al-Awwal", "Rabi' al-Thani",
+        "Jumada al-Awwal", "Jumada al-Thani", "Rajab", "Sha'ban",
+        "Ramadan", "Shawwal", "Dhu al-Qa'dah", "Dhu al-Hijjah"
+    ];
+
     const getDates = () => {
-    const now = new Date();
+        const now = new Date();
 
-    // 1. Get Gregorian Date (e.g., "Oct 24, 2023")
-    gregorianDate.value = new Intl.DateTimeFormat('en-US', {
-        day: 'numeric', month: 'short', year: 'numeric'
-    }).format(now);
+        // 1. Get Gregorian Date
+        gregorianDate.value = new Intl.DateTimeFormat('en-US', {
+            day: 'numeric', month: 'short', year: 'numeric'
+        }).format(now);
 
-    // 2. Get Hijri Date
-    // 'en-u-ca-islamic-umalqura' asks the browser for the Islamic Calendar
-    const hijriParts = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    }).formatToParts(now);
+        // 2. Get Hijri Date (Fetch NUMERIC values to avoid "August" bug)
+        const hijriParts = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+            day: 'numeric',
+            month: 'numeric', // <--- CHANGED from 'long' to 'numeric'
+            year: 'numeric'
+        }).formatToParts(now);
 
-    // Extract parts into our reactive object
-    hijriDate.value = {
-        day: hijriParts.find(p => p.type === 'day')?.value || '',
-        month: hijriParts.find(p => p.type === 'month')?.value || '',
-        year: hijriParts.find(p => p.type === 'year')?.value + ' AH' || ''
-    };
+        // Extract values
+        const day = hijriParts.find(p => p.type === 'day')?.value;
+        const monthIndex = hijriParts.find(p => p.type === 'month')?.value;
+        const year = hijriParts.find(p => p.type === 'year')?.value;
+
+        // Map numeric month (1-12) to Name
+        const monthName = monthIndex ? ISLAMIC_MONTHS[parseInt(monthIndex) - 1] : '';
+
+        hijriDate.value = {
+            day: day || '',
+            month: monthName || '',
+            year: (year || '') + ' AH'
+        };
     };
 
     onMounted(() => {
-    getDates();
+        getDates();
     });
 </script>
 
